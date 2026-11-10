@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101319">
+  <title>Infinite Dungeon</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="game.mjs"></script>
+</head>
+<body>
+  <main>
+    <header><div class="eyebrow">A TINY PIXEL ADVENTURE <span>v0.1</span></div><h1>INFINITE<br><span>DUNGEON</span></h1></header>
+    <section class="game" aria-label="Dungeon game">
+      <div class="hud"><span>FLOOR <strong id="floor">01</strong></span><span id="key-status">◇ KEY MISSING</span></div>
+      <div class="board"><canvas id="dungeon" width="500" height="380" tabindex="0" aria-label="Dungeon map. Use arrow keys or WASD to move. Find the golden key, then enter the exit."></canvas></div>
+      <p id="message" role="status" aria-live="polite">Find the golden key. Open the exit.</p>
+    </section>
+    <div class="bottom">
+      <div class="guide"><p><i class="legend player"></i> YOU <i class="legend key"></i> KEY <i class="legend exit"></i> EXIT</p><p>ARROW KEYS / WASD<br><span>or use the direction pad</span></p></div>
+      <div class="controls" role="group" aria-label="Movement controls">
+        <button type="button" data-direction="up" aria-label="Move up">▲</button>
+        <button type="button" data-direction="left" aria-label="Move left">◀</button>
+        <span aria-hidden="true" class="pad-center">·</span>
+        <button type="button" data-direction="right" aria-label="Move right">▶</button>
+        <button type="button" data-direction="down" aria-label="Move down">▼</button>
+      </div>
+    </div>
+    <footer>ONE KEY. ONE EXIT. ANOTHER FLOOR.</footer>
+  </main>
+</body>
+</html>

@@ -1,6 +1,12 @@
-# Infinite Dungeon v0.1
+# Infinite Dungeon v0.2
 
 A tiny, dependency-free browser dungeon crawl. Find the golden key, then step into the exit to descend to a fresh floor. No enemies or combat.
+
+The dungeon uses a 2:1 isometric view. The full map fits the canvas; short walls
+keep corridors readable. Raised objects draw back to front by `x + y`.
+Controls still move along the original grid: Up/W = northeast, Right/D =
+southeast, Down/S = southwest, Left/A = northwest. Pad arrows show these
+projected directions. Generation and gameplay rules are unchanged.
 
 ## Run
 

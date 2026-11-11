@@ -5,39 +5,82 @@ const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 const directions = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const keyDirections = { ArrowUp: 'up', w: 'up', ArrowDown: 'down', s: 'down', ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
-const tile = 20;
+// Standard 2:1 projection. Keep the full map in view at every screen size.
+const halfWidth = 12, halfHeight = 6, wallHeight = 4;
+const originX = 48 + HEIGHT * halfWidth, originY = 34;
+function project(x, y) {
+  return { x: originX + (x - y) * halfWidth, y: originY + (x + y) * halfHeight };
+}
 function rect(color, x, y, w, h) { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); }
+function polygon(color, points) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+  ctx.closePath(); ctx.fill();
+}
+function diamond(color, x, y, w = halfWidth, h = halfHeight) {
+  polygon(color, [[x, y - h], [x + w, y], [x, y + h], [x - w, y]]);
+}
+function drawWall(x, y) {
+  // Low walls keep the player and key visible in narrow corridors.
+  polygon('#34434a', [[x - halfWidth, y - wallHeight], [x, y + halfHeight - wallHeight], [x, y + halfHeight], [x - halfWidth, y]]);
+  polygon('#26353d', [[x, y + halfHeight - wallHeight], [x + halfWidth, y - wallHeight], [x + halfWidth, y], [x, y + halfHeight]]);
+  diamond('#435159', x, y - wallHeight);
+  polygon('#536169', [[x - 10, y - wallHeight], [x, y - 5 - wallHeight], [x + 10, y - wallHeight], [x, y - 3 - wallHeight]]);
+}
+function drawExit(x, y) {
+  diamond('#090f15', x, y, 10, 5);
+  diamond(game.hasKey ? '#b0c68e' : '#75856a', x, y, 8, 4);
+  diamond('#152326', x, y, 6, 3);
+  // A small gate stands on the back edge of the exit tile.
+  rect('#6c815f', x - 7, y - 16, 3, 14);
+  rect('#6c815f', x + 4, y - 16, 3, 14);
+  rect(game.hasKey ? '#b0c68e' : '#75856a', x - 7, y - 17, 14, 3);
+  if (!game.hasKey) rect('#f5ce66', x - 1, y - 10, 3, 4);
+}
+function drawKey(x, y) {
+  diamond('#152126', x, y + 1, 6, 3);
+  rect('#a67b31', x - 5, y - 11, 7, 7);
+  rect('#f5ce66', x - 6, y - 12, 7, 7);
+  rect('#34392c', x - 4, y - 10, 3, 3);
+  rect('#f5ce66', x, y - 9, 7, 3);
+  rect('#f5ce66', x + 4, y - 7, 3, 4);
+}
+function drawPlayer(x, y) {
+  diamond('#111d21', x, y + 1, 7, 3);
+  rect('#84b7a7', x - 5, y - 17, 10, 7);
+  rect('#c4dfbd', x - 4, y - 15, 8, 5);
+  rect('#203632', x + 1, y - 14, 2, 2);
+  rect('#6f9c9b', x - 6, y - 10, 12, 6);
+  rect('#b2cabb', x - 6, y - 10, 3, 4);
+  rect('#b2cabb', x + 3, y - 10, 3, 4);
+  rect('#638889', x - 5, y - 4, 4, 4);
+  rect('#638889', x + 1, y - 4, 4, 4);
+}
 function render() {
-  for (let y = 0; y < HEIGHT; y++) {
-    for (let x = 0; x < WIDTH; x++) {
-      const px = x * tile, py = y * tile;
-      if (game.tiles[y][x]) {
-        rect((x + y) % 2 ? '#293332' : '#2c3735', px, py, tile, tile);
-        rect('#36413b', px + 3, py + 15, 3, 1);
-      } else {
-        rect('#141d24', px, py, tile, tile);
-        rect('#29343b', px + 1, py + 1, 18, 5);
-        rect('#202c33', px + 1, py + 7, 8, 11);
-        rect('#202c33', px + 10, py + 7, 9, 11);
-      }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = false;
+  // Ground first; then raised objects from back to front by their tile feet.
+  // Equal-depth tiles cannot obscure each other at this sprite width.
+  for (let depth = 0; depth < WIDTH + HEIGHT - 1; depth++) {
+    for (let y = 0; y < HEIGHT; y++) {
+      const x = depth - y;
+      if (x < 0 || x >= WIDTH) continue;
+      const p = project(x, y);
+      diamond(game.tiles[y][x] ? ((x + y) % 2 ? '#2e4039' : '#34473e') : '#18242c', p.x, p.y);
     }
   }
-  let x = game.exit.x * tile, y = game.exit.y * tile;
-  rect('#0b1217', x + 2, y + 1, 16, 18);
-  rect(game.hasKey ? '#b0c68e' : '#75856a', x + 3, y + 2, 14, 3);
-  rect('#6c815f', x + 3, y + 5, 3, 14); rect('#6c815f', x + 14, y + 5, 3, 14);
-  rect(game.hasKey ? '#b0c68e' : '#dfb854', x + 10, y + 10, 3, 4);
-  if (!game.hasKey) {
-    x = game.key.x * tile; y = game.key.y * tile;
-    rect('#a67b31', x + 5, y + 6, 8, 8); rect('#f5ce66', x + 4, y + 5, 7, 7);
-    rect('#34392c', x + 6, y + 7, 3, 3); rect('#f5ce66', x + 10, y + 8, 7, 3); rect('#f5ce66', x + 14, y + 10, 3, 4);
+  for (let depth = 0; depth < WIDTH + HEIGHT - 1; depth++) {
+    for (let y = 0; y < HEIGHT; y++) {
+      const x = depth - y;
+      if (x < 0 || x >= WIDTH) continue;
+      const p = project(x, y);
+      if (!game.tiles[y][x]) drawWall(p.x, p.y);
+      if (game.exit.x === x && game.exit.y === y) drawExit(p.x, p.y);
+      if (!game.hasKey && game.key.x === x && game.key.y === y) drawKey(p.x, p.y);
+      if (game.player.x === x && game.player.y === y) drawPlayer(p.x, p.y);
+    }
   }
-  x = game.player.x * tile; y = game.player.y * tile;
-  rect('#111d21', x + 3, y + 17, 14, 2);
-  rect('#84b7a7', x + 5, y + 3, 10, 7); rect('#c4dfbd', x + 6, y + 5, 8, 5);
-  rect('#203632', x + 11, y + 6, 2, 2); rect('#6f9c9b', x + 4, y + 10, 12, 6);
-  rect('#b2cabb', x + 4, y + 10, 3, 4); rect('#b2cabb', x + 13, y + 10, 3, 4);
-  rect('#638889', x + 5, y + 16, 4, 2); rect('#638889', x + 11, y + 16, 4, 2);
   document.querySelector('#floor').textContent = String(game.floor).padStart(2, '0');
   const keyStatus = document.querySelector('#key-status');
   keyStatus.textContent = game.hasKey ? '◆ KEY COLLECTED' : '◇ KEY MISSING';
